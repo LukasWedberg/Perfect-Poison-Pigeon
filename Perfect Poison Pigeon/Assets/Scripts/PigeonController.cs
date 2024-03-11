@@ -36,14 +36,34 @@ public class PigeonController : MonoBehaviour
     [SerializeField]
     float jumpEnergyCost = 20;
 
+    [SerializeField]
+    CharacterJoint[] myCharacterJoints;
+
+
+    [SerializeField]
+    Rigidbody[] myRigidbodies;
+
+
+
+
+    [SerializeField]
+    float respawnTime = 3f;
+    float respawnTimer = 0f;
+
+
+
     public enum PigeonState
     { 
         Biting,
-        Roaming
+        Roaming,
+        Respawning
     }
 
     [SerializeField]
     public PigeonState currentPigeonState = PigeonState.Roaming;
+
+    [SerializeField]
+    Animator animController;
 
 
     // Start is called before the first frame update
@@ -51,6 +71,8 @@ public class PigeonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         cam = Camera.main;
+
+        UnRagdoll();
     }
 
     // Update is called once per frame
@@ -66,7 +88,6 @@ public class PigeonController : MonoBehaviour
 
                 Vector3 newMoveDirection = (forwardDirection * Input.GetAxisRaw("Vertical") + rightDirection * Input.GetAxisRaw("Horizontal")).normalized * moveSpeed;
 
-
                 Vector3 averageMoveDirection = Vector3.Scale(newMoveDirection + previousMoveDirection, new Vector3(averageSpeedMultiplier, averageSpeedMultiplier, averageSpeedMultiplier));
 
                 if (averageMoveDirection.magnitude > maxMoveSpeed)
@@ -79,15 +100,35 @@ public class PigeonController : MonoBehaviour
 
                 if (controller.isGrounded)
                 {
+                    animController.SetBool("GroundedJump", false);
+                    animController.SetBool("FlappingPigeonJump", false);
+                    animController.SetBool("Freefall", false);
 
-                    if (Input.GetKeyDown(KeyCode.Space))
+                    //this first if statement is for animating the pigeon walking.
+                    //Debug.Log(newMoveDirection.magnitude/moveSpeed);
+                    if (newMoveDirection.magnitude/moveSpeed != 0f)
                     {
-                        Debug.Log("Alleyoop!");
-                        verticalVelocity = Mathf.Sqrt(2 * jumpHeight * gravity);
+                        animController.SetBool("Walking", true);
                     }
                     else
                     {
-                        verticalVelocity = -0.1f;
+                        animController.SetBool("Walking", false);
+                    }
+
+                    //These next if statements are for jumping and gravity!
+                    if (Input.GetKeyDown(KeyCode.Space))
+                    {
+                        //Debug.Log("Alleyoop!");
+                        verticalVelocity = Mathf.Sqrt(2 * jumpHeight * gravity);
+
+                        animController.SetBool("GroundedJump", true);
+
+                        
+                    }
+                    else
+                    {
+                        
+                        verticalVelocity = -0.3f;
                     }
                 }
                 else
@@ -104,16 +145,28 @@ public class PigeonController : MonoBehaviour
                     {
                         if (currentEnergy > jumpEnergyCost)
                         {
+                            //animController.SetBool("FlappingPigeonJump", true);
+                            animController.Play("PigeonFlap");
 
                             currentEnergy -= jumpEnergyCost;
 
-                            Debug.Log("Alleyoop!");
+                            //Debug.Log("Alleyoop!");
                             verticalVelocity = Mathf.Sqrt(2 * jumpHeight * gravity);
                         }
                         else
                         {
-                            Debug.Log("We're out of jump juice!");
+                            //Debug.Log("We're out of jump juice!");
+
+                            //Ragdoll(null);
                         }
+                    }
+                    else
+                    {
+                        if (verticalVelocity < -0.1f)
+                        {
+                            animController.SetBool("Freefall", true);
+                        }
+
                     }
                 }
 
@@ -134,6 +187,9 @@ public class PigeonController : MonoBehaviour
 
                 if (Input.GetKeyDown(KeyCode.Space))
                 {
+
+                    animController.Play("PigeonFlap");
+
                     verticalVelocity = Mathf.Sqrt(2 * jumpHeight * gravity);
 
                     UnBite();
@@ -141,22 +197,67 @@ public class PigeonController : MonoBehaviour
 
                 break;
 
+
+            case PigeonState.Respawning:
+                if (respawnTimer < respawnTime)
+                {
+                    //Debug.Log("WAIT");
+
+                    respawnTimer += Time.deltaTime;
+
+                }
+                else
+                {
+                    respawnTimer = 0;
+
+                    //Debug.Log("Welcome back, player!");
+
+
+
+                    
+
+                    transform.position = new Vector3(0, 1, 0);
+
+                    controller.enabled = true;
+
+                    //transform.GetChild(0).gameObject.SetActive(true);
+
+                    verticalVelocity = 0;
+
+                    previousMoveDirection = new Vector3(.1f, .1f, .1f);
+
+                    currentPigeonState = PigeonState.Roaming;
+
+                    //animController.Play("PigeonFlap");
+
+                }
+
+
+                
+                break;
         }
         
 
     }
 
 
-    public void Bite(Transform thingToBite)
+    public bool Bite(Transform thingToBite)
     {
-        if (!controller.isGrounded && verticalVelocity < .1f)
+        if (!controller.isGrounded && verticalVelocity < .1f && currentPigeonState != PigeonState.Biting)
         {
             currentPigeonState = PigeonState.Biting;
 
             transform.parent = thingToBite;
+
+            Ragdoll(null);
+
+            animController.SetBool("Freefall", false);
+
+            return true;
         }
 
-        
+        return false;
+
 
     }
 
@@ -165,6 +266,76 @@ public class PigeonController : MonoBehaviour
         currentPigeonState = PigeonState.Roaming;
 
         transform.parent = null;
+
+        UnRagdoll();
     }
+
+    public void Ragdoll(Rigidbody target) {
+        
+
+        for (int i = 0; i < myRigidbodies.Length; i++)
+        {
+            Rigidbody currentRB = myRigidbodies[i];
+            //Debug.Log(i);
+
+            currentRB.isKinematic = false;
+        }
+
+        animController.enabled = false;
+
+    }
+
+    public void UnRagdoll()
+    {
+        for (int i = 0; i < myRigidbodies.Length; i++)
+        {
+            Rigidbody currentRB = myRigidbodies[i];
+            //Debug.Log(i);
+
+            currentRB.isKinematic = true;
+        }
+
+
+        animController.enabled = true;
+    }
+
+
+    public void Respawn() 
+    {
+        if (currentPigeonState != PigeonState.Respawning)
+        {
+            //Here we'll use feather particles to signifiy when the player gets hit and disappears;
+
+            Debug.Log("Hit once!");
+
+            
+
+            //transform.GetChild(0).gameObject.SetActive(false);
+
+            verticalVelocity = 0;
+
+            previousMoveDirection = new Vector3(0, 1, 0);
+
+            controller.enabled = false;
+
+            
+            UnBite();
+
+            currentPigeonState = PigeonState.Respawning;
+
+            
+
+
+            transform.position += new Vector3(0, 800, 0);
+
+            
+
+        }
+
+        
+        
+    
+    }
+
 
 }

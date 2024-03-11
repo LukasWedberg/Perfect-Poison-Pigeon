@@ -21,13 +21,7 @@ public class BitableObject : MonoBehaviour
         hitBox = GetComponent<BoxCollider>();
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    protected virtual void OnTriggerEnter( Collider other)
+    protected virtual bool OnTriggerEnter( Collider other)
     {
         if (hitBox != null)
         {
@@ -37,12 +31,39 @@ public class BitableObject : MonoBehaviour
 
                 PigeonController pigeonScript = other.GetComponent<PigeonController>();
 
-                pigeonScript.Bite(transform);
+                
+                return pigeonScript.Bite(transform);
             }
 
-
+            return false;
         }
+
+        return false;
     }
+
+    protected virtual bool OnTriggerStay(Collider other)
+    {
+        //Debug.Log("STAYSTAY");
+
+        if (hitBox != null)
+        {
+            if (other.CompareTag("Player"))
+            {
+                Debug.Log(other.gameObject.name);
+
+                PigeonController pigeonScript = other.GetComponent<PigeonController>();
+
+
+                return pigeonScript.Bite(transform);
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+
 
 
 
