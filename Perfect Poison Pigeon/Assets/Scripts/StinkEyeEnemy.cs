@@ -172,7 +172,7 @@ public class StinkEyeEnemy : BitableObject
                 break;
 
             case EyeState.Bitten:
-                transform.position = targetPos + new Vector3(Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness);
+                //transform.position = targetPos + new Vector3(Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness);
 
                 break;
 
@@ -182,6 +182,16 @@ public class StinkEyeEnemy : BitableObject
 
 
     
+    }
+
+    void LateUpdate()
+    {
+        if (currentEyeState == EyeState.Bitten)
+        {
+            transform.position = targetPos + new Vector3(Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness, Random.Range(-1.01f, 1.01f) * shakiness);
+
+        }
+
     }
 
     protected override bool OnTriggerEnter(Collider other)

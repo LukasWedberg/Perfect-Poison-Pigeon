@@ -78,6 +78,11 @@ public class PigeonController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (transform.position.y < -10)
+        {
+            Respawn();
+        }
+
 
         switch (currentPigeonState)
         {
